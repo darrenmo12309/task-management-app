@@ -1,0 +1,32 @@
+database:
+  image:
+    repository: postgres
+    tag: "16-alpine"
+    pullPolicy: IfNotPresent
+
+  auth:
+    database: taskmanagement
+    username: postgres
+    password: changeme
+
+  storage:
+    size: 1Gi
+    storageClass: standard
+
+  backup:
+    schedule: "0 2 * * *"
+    retentionDays: 7
+    storage:
+      size: 5Gi
+      storageClass: standard
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  pdb:
+    minAvailable: 1

@@ -1,0 +1,25 @@
+frontend:
+  replicaCount: 2
+
+  image:
+    repository: task-management-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  service:
+    port: 80
+
+  ingress:
+    enabled: true
+    host: task-management.local
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+  pdb:
+    minAvailable: 1

@@ -1,0 +1,29 @@
+replicaCount: 2
+
+image:
+  repository: task-management-backend
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  port: 3000
+
+config:
+  DB_HOST: postgres-service
+  DB_PORT: "5432"
+  DB_NAME: taskmanagement
+  DB_USER: postgres
+
+secret:
+  DB_PASSWORD: changeme
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
+
+pdb:
+  minAvailable: 1
