@@ -1,3 +1,5 @@
+{{- if not .Values.external.enabled }}
+# Backup is only needed in local mode — external databases (e.g. RDS) handle backups natively
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -6,6 +8,7 @@ metadata:
     {{- include "database.labels" . | nindent 4 }}
 spec:
   schedule: {{ .Values.backup.schedule | quote }}
+  # Prevent two backup jobs from running at the same time
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 1
@@ -24,6 +27,7 @@ spec:
                   BACKUP_FILE="/backups/backup-$(date +%Y%m%d-%H%M%S).sql"
                   pg_dump -h postgres-service -U $POSTGRES_USER -d $POSTGRES_DB > "$BACKUP_FILE"
                   echo "Backup saved to $BACKUP_FILE"
+                  # Prune backups older than the configured retention window
                   find /backups -name "*.sql" -mtime +{{ .Values.backup.retentionDays }} -delete
                   echo "Old backups pruned (retention: {{ .Values.backup.retentionDays }} days)"
               envFrom:
@@ -36,3 +40,4 @@ spec:
             - name: backups
               persistentVolumeClaim:
                 claimName: {{ include "database.fullname" . }}-backups
+{{- end }}

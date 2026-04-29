@@ -1,4 +1,12 @@
 database:
+  # Local mode (Minikube): external.enabled: false  → deploys StatefulSet + PVC inside the cluster
+  # Production mode (AWS RDS etc): external.enabled: true, set host to your RDS endpoint
+  #   e.g. host: mydb.xxxxxxxx.us-east-1.rds.amazonaws.com
+  external:
+    enabled: false
+    host: ""
+    port: 5432
+
   image:
     repository: postgres
     tag: "16-alpine"

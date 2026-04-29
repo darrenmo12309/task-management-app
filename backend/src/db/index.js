@@ -1,5 +1,7 @@
 const { Pool } = require('pg');
 
+// Connection values are injected as env vars from the Helm ConfigMap and Secret.
+// Fallbacks are for running the backend locally outside of Kubernetes.
 const pool = new Pool({
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 5432,

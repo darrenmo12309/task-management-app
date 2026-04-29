@@ -9,10 +9,12 @@ app.get('/', (req, res) => {
     res.send('Hello from your Node.js backend!');
 });
 
+// Kubernetes liveness and readiness probes hit this endpoint to verify the pod is healthy
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok' });
 });
 
+// Stores plain-text password for simplicity; production would use bcrypt hashing
 app.post('/signup', async (req, res) => {
     const { email, username, password } = req.body;
     try {
@@ -73,15 +75,26 @@ app.get('/boards/:boardId', async (req, res) => {
     }
 });
 
-// Create a board
+// Create a board and immediately seed it with three default columns in parallel
 app.post('/boards', async (req, res) => {
     const { name, owner_id } = req.body;
     try {
-        const result = await pool.query(
+        const boardResult = await pool.query(
             'INSERT INTO boards (name, owner_id) VALUES ($1, $2) RETURNING id, name, owner_id, created_at',
             [name, owner_id]
         );
-        res.status(201).json(result.rows[0]);
+        const board = boardResult.rows[0];
+
+        // Fire all three column inserts concurrently instead of sequentially
+        const defaultColumns = ['To Do', 'In Progress', 'Completed'];
+        await Promise.all(defaultColumns.map((colName, position) =>
+            pool.query(
+                'INSERT INTO columns (board_id, name, position) VALUES ($1, $2, $3)',
+                [board.id, colName, position]
+            )
+        ));
+
+        res.status(201).json(board);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -105,7 +118,7 @@ app.put('/boards/:boardId', async (req, res) => {
     }
 });
 
-// Delete a board
+// Delete a board — cascades to columns and tasks via ON DELETE CASCADE in schema
 app.delete('/boards/:boardId', async (req, res) => {
     const { boardId } = req.params;
     try {
@@ -169,7 +182,7 @@ app.put('/columns/:columnId', async (req, res) => {
     }
 });
 
-// Delete a column
+// Delete a column — cascades to its tasks via ON DELETE CASCADE in schema
 app.delete('/columns/:columnId', async (req, res) => {
     const { columnId } = req.params;
     try {
@@ -250,7 +263,7 @@ app.put('/tasks/:taskId', async (req, res) => {
     }
 });
 
-// Move a task to a different column
+// PATCH instead of PUT — only column_id and position change when moving a task
 app.patch('/tasks/:taskId/move', async (req, res) => {
     const { taskId } = req.params;
     const { column_id, position } = req.body;

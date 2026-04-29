@@ -9,6 +9,7 @@ spec:
   selector:
     matchLabels:
       {{- include "backend.selectorLabels" . | nindent 6 }}
+  # Zero-downtime deploys: new pod must pass readiness before the old one is terminated
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -19,6 +20,7 @@ spec:
       labels:
         {{- include "backend.selectorLabels" . | nindent 8 }}
     spec:
+      # Enforces that the container runs as a non-root user (matches appuser in the Dockerfile)
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -30,11 +32,13 @@ spec:
             - name: http
               containerPort: 3000
               protocol: TCP
+          # Non-sensitive config (DB host, port, name) from ConfigMap; password from Secret
           envFrom:
             - configMapRef:
                 name: {{ include "backend.fullname" . }}-config
             - secretRef:
                 name: {{ include "backend.fullname" . }}-secret
+          # Liveness: restart the pod if /health stops responding
           livenessProbe:
             httpGet:
               path: /health
@@ -42,6 +46,7 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 15
             failureThreshold: 3
+          # Readiness: hold traffic until /health returns 200 after startup
           readinessProbe:
             httpGet:
               path: /health

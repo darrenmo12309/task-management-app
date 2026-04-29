@@ -1,3 +1,4 @@
+{{- if not .Values.external.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -14,3 +15,4 @@ spec:
       port: 5432
       targetPort: 5432
       protocol: TCP
+{{- end }}

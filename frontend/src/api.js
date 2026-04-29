@@ -1,3 +1,5 @@
+// All requests go through /api/ — Vite proxies this to localhost:3000 in dev,
+// and nginx proxies it to the backend Kubernetes service in production.
 const BASE = '/api';
 
 async function request(method, path, body) {
@@ -7,6 +9,7 @@ async function request(method, path, body) {
         body: body ? JSON.stringify(body) : undefined,
     });
     const data = await res.json();
+    // Throw so callers can catch and display the error message from the backend
     if (!res.ok) throw new Error(data.error || 'Request failed');
     return data;
 }

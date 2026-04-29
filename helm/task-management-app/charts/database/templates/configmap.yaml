@@ -1,3 +1,4 @@
+{{- if not .Values.external.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -7,3 +8,4 @@ metadata:
 data:
   schema.sql: |
 {{ .Files.Get "files/schema.sql" | indent 4 }}
+{{- end }}

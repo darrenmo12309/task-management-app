@@ -13,7 +13,7 @@ frontend:
     enabled: true
     host: task-management.local
 
-  backendServiceUrl: "http://release-name-backend:3000"
+  backendServiceUrl: "http://app-backend:3000"
 
   resources:
     requests:

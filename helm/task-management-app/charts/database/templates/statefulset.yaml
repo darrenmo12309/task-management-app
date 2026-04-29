@@ -1,3 +1,6 @@
+{{- if not .Values.external.enabled }}
+# StatefulSet gives the database pod a stable identity (app-database-0) and owns
+# its PersistentVolumeClaim — the volume survives pod restarts and rescheduling.
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -7,6 +10,8 @@ metadata:
 spec:
   serviceName: {{ include "database.fullname" . }}-headless
   replicas: 1
+  updateStrategy:
+    type: RollingUpdate
   selector:
     matchLabels:
       {{- include "database.selectorLabels" . | nindent 6 }}
@@ -15,6 +20,8 @@ spec:
       labels:
         {{- include "database.selectorLabels" . | nindent 8 }}
     spec:
+      # fsGroup 999 is the postgres group inside the container — ensures the mounted
+      # PVC is writable by the postgres process without running as root
       securityContext:
         fsGroup: 999
       containers:
@@ -25,15 +32,19 @@ spec:
             - name: postgres
               containerPort: 5432
               protocol: TCP
+          # Credentials come from the Kubernetes Secret, not baked into the image
           envFrom:
             - secretRef:
                 name: {{ include "database.fullname" . }}-secret
           volumeMounts:
             - name: postgres-data
               mountPath: /var/lib/postgresql/data
+              # subPath prevents postgres from complaining about a non-empty mount directory
               subPath: pgdata
             - name: init-schema
+              # Postgres automatically runs any .sql files in this directory on first boot
               mountPath: /docker-entrypoint-initdb.d
+          # pg_isready is the correct health check for Postgres — checks the DB is accepting connections
           livenessProbe:
             exec:
               command:
@@ -62,6 +73,7 @@ spec:
         - name: init-schema
           configMap:
             name: {{ include "database.fullname" . }}-init
+  # volumeClaimTemplates binds a PVC to this StatefulSet — the volume outlives the pod
   volumeClaimTemplates:
     - metadata:
         name: postgres-data
@@ -71,3 +83,4 @@ spec:
         resources:
           requests:
             storage: {{ .Values.storage.size }}
+{{- end }}

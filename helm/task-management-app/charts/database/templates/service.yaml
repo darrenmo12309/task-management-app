@@ -1,9 +1,24 @@
 apiVersion: v1
 kind: Service
 metadata:
+  # Fixed name so the backend always connects to "postgres-service" regardless of mode
   name: postgres-service
   labels:
     {{- include "database.labels" . | nindent 4 }}
+{{- if .Values.external.enabled }}
+# External mode: service becomes a DNS alias (CNAME) pointing to the remote host (e.g. AWS RDS).
+# Kubernetes acts as a DNS middleman — no pods, no selector, no virtual IP.
+# The backend config never changes; only what "postgres-service" resolves to changes.
+spec:
+  type: ExternalName
+  externalName: {{ .Values.external.host }}
+  ports:
+    - name: postgres
+      port: {{ .Values.external.port }}
+      targetPort: {{ .Values.external.port }}
+      protocol: TCP
+{{- else }}
+# Local mode: standard ClusterIP service routes to the StatefulSet pod via label selector
 spec:
   type: ClusterIP
   selector:
@@ -13,3 +28,4 @@ spec:
       port: 5432
       targetPort: 5432
       protocol: TCP
+{{- end }}

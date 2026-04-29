@@ -9,6 +9,7 @@ spec:
   selector:
     matchLabels:
       {{- include "frontend.selectorLabels" . | nindent 6 }}
+  # Zero-downtime deploys: new pod must pass readiness before the old one is terminated
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -19,6 +20,7 @@ spec:
       labels:
         {{- include "frontend.selectorLabels" . | nindent 8 }}
     spec:
+      # Enforces that the container runs as a non-root user (matches appuser in the Dockerfile)
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -30,6 +32,7 @@ spec:
             - name: http
               containerPort: 8080
               protocol: TCP
+          # nginx.conf is managed as a ConfigMap so the backend URL can be changed without rebuilding the image
           volumeMounts:
             - name: nginx-config
               mountPath: /etc/nginx/nginx.conf
